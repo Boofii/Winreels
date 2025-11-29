@@ -17,14 +17,13 @@ public class ClientFragment
     public Action<Socket>? OnConnection;
     public Action<string, string[]>? OnSent;
     public Action<string, string[]>? OnReceived;
-    public Func<string, string[], bool, string[]>? DoEncryption;
-    public Func<string, string[], bool, string[]>? DoDecryption;
+    public Func<int, string, string[], bool, string[]>? DoEncryption;
+    public Func<int, string, string[], bool, string[]>? DoDecryption;
 
     private LoggerFragment? logger;
     private readonly string serverAddress;
     private readonly int serverPort;
     private Socket? client;
-    public int? id;
 
     // Links a LoggerFragment with this ClientFragment.
     public ClientFragment(string serverAddress, int serverPort)
@@ -72,9 +71,7 @@ public class ClientFragment
                             if (splitCmd.Length > 1)
                                 args = splitCmd[1].Split(SepSign);
                             if (DoDecryption != null)
-                                args = DoDecryption(name, args, false);
-                            if (name.StartsWith("public_key"))
-                                this.id = int.Parse(args[0]);
+                                args = DoDecryption(-1, name, args, false);
 
                             if (!name.StartsWith("public_key") && !name.StartsWith("aes_key"))
                                 logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
@@ -95,23 +92,14 @@ public class ClientFragment
     // Executes a command based on its name and args.
     public void Execute(string cmd, string[] args)
     {
-        if (id == null)
-            return;
+        if (DoEncryption != null)
+            args = DoEncryption(-1, cmd, args, false);
 
-        string? idStr = id.ToString();
-        if (idStr != null)
-        {
-            string[] first = [idStr];
-            args = [.. first, .. args];
-            if (DoEncryption != null)
-                args = DoEncryption(cmd, args, false);
-
-            byte[] buffer = Encoding.UTF8.GetBytes(
-                $"{cmd}{(args.Length > 0 ? ArgSign + string.Join(SepSign, args) : "")}{EndSign}"
-            );
-            client?.Send(buffer);
-            OnSent?.Invoke(cmd, args);
-        }
+        byte[] buffer = Encoding.UTF8.GetBytes(
+            $"{cmd}{(args.Length > 0 ? ArgSign + string.Join(SepSign, args) : "")}{EndSign}"
+        );
+        client?.Send(buffer);
+        OnSent?.Invoke(cmd, args);
     }
 
     // Closes the client socket.

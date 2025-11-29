@@ -92,7 +92,7 @@ public class CryptoFragment
         if (!cmd.Equals("public_key"))
             return;
 
-        string content = args[1];
+        string content = args[0];
         RSA rsa = RSA.Create();
         rsa.ImportFromPem(content);
         this.publicKey = rsa;
@@ -109,7 +109,7 @@ public class CryptoFragment
     }
 
     // Receives on the server side the newly connected client's AES key.
-    private void ReceiveAesKey(string cmd, string[] args)
+    private void ReceiveAesKey(int id, string cmd, string[] args)
     {
         if (server == null || privateKey == null)
         {
@@ -119,9 +119,8 @@ public class CryptoFragment
         if (!cmd.Equals("aes_key"))
             return;
 
-        int id = int.Parse(args[0]);
-        byte[] key = privateKey.Decrypt(Convert.FromBase64String(args[1]), RSAEncryptionPadding.OaepSHA3_256);
-        byte[] iv = privateKey.Decrypt(Convert.FromBase64String(args[2]), RSAEncryptionPadding.OaepSHA3_256);
+        byte[] key = privateKey.Decrypt(Convert.FromBase64String(args[0]), RSAEncryptionPadding.OaepSHA3_256);
+        byte[] iv = privateKey.Decrypt(Convert.FromBase64String(args[1]), RSAEncryptionPadding.OaepSHA3_256);
         Aes aes = Aes.Create();
         aes.KeySize = 256;
         aes.Key = key;
@@ -130,20 +129,19 @@ public class CryptoFragment
         logger?.Log(LogLevel.INFO, $"Key exchange done with a client: {id}.");
     }
 
-    private string[] Encrypt(string cmd, string[] args, bool serverSide = false)
+    private string[] Encrypt(int id, string cmd, string[] args, bool serverSide = false)
     {
         if (cmd.Equals("aes_key") || cmd.Equals("public_key"))
             return args;
 
-        Aes? aes = serverSide ? commKeys[int.Parse(args[0])] : commKey;
+        Aes? aes = serverSide ? commKeys[id] : commKey;
         if (aes == null)
         {
             logger?.Log(LogLevel.ERROR, "Failed to find an aes key for encryption.");
             return [];
         }
         string[] newArgs = new string[args.Length];
-        newArgs[0] = args[0];
-        for (int i = 1; i < args.Length; i++)
+        for (int i = 0; i < args.Length; i++)
         {
             using var encryptor = aes.CreateEncryptor();
             byte[] buffer = Encoding.UTF8.GetBytes(args[i]);
@@ -153,20 +151,19 @@ public class CryptoFragment
         return newArgs;
     }
 
-    private string[] Decrypt(string cmd, string[] args, bool serverSide = false)
+    private string[] Decrypt(int id, string cmd, string[] args, bool serverSide = false)
     {
         if (cmd.Equals("aes_key") || cmd.Equals("public_key"))
             return args;
         
-        Aes? aes = serverSide ? commKeys[int.Parse(args[0])] : commKey;
+        Aes? aes = serverSide ? commKeys[id] : commKey;
         if (aes == null)
         {
             logger?.Log(LogLevel.ERROR, "Failed to find an aes key for decryption.");
             return [];
         }
         string[] newArgs = new string[args.Length];
-        newArgs[0] = args[0];
-        for (int i = 1; i < args.Length; i++)
+        for (int i = 0; i < args.Length; i++)
         {
             using var decryptor = aes.CreateDecryptor();
             byte[] buffer = Convert.FromBase64String(args[i]);

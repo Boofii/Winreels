@@ -1,4 +1,3 @@
-using System.Data;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -18,9 +17,9 @@ public class ServerFragment
     public readonly Dictionary<int, Socket> connections = [];
     public Action<int, Socket>? OnConnection;
     public Action<string, string[]>? OnSent;
-    public Action<string, string[]>? OnReceived;
-    public Func<string, string[], bool, string[]>? DoEncryption;
-    public Func<string, string[], bool, string[]>? DoDecryption;
+    public Action<int, string, string[]>? OnReceived;
+    public Func<int, string, string[], bool, string[]>? DoEncryption;
+    public Func<int, string, string[], bool, string[]>? DoDecryption;
 
     private LoggerFragment? logger;
     private readonly string address;
@@ -84,12 +83,13 @@ public class ServerFragment
                                         string[] args = [];
                                         if (splitCmd.Length > 1)
                                             args = splitCmd[1].Split(SepSign);
+                                        int id = GetClientId(client);
                                         if (DoDecryption != null)
-                                            args = DoDecryption(name, args, true);
+                                            args = DoDecryption(id, name, args, true);
 
                                         if (!name.StartsWith("public_key") && !name.StartsWith("aes_key"))
                                             logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
-                                        OnReceived?.Invoke(name, args);
+                                        OnReceived?.Invoke(id, name, args);
                                     }
                                 }
                             }
@@ -125,6 +125,7 @@ public class ServerFragment
     {
         if (id == -1)
         {
+            string[] originalArgs = args;
             foreach (int clientId in connections.Keys)
             {
                 if (!connections[clientId].Connected)
@@ -132,12 +133,9 @@ public class ServerFragment
                     connections[clientId].Dispose();
                     continue;
                 }
-                string[] sendArgs = new string[args.Length + 1];
-                sendArgs[0] = clientId.ToString();
-                if (args.Length > 0)
-                    Array.Copy(args, 0, sendArgs, 1, args.Length);
+                string[] sendArgs = originalArgs;
                 if (DoEncryption != null)
-                    sendArgs = DoEncryption(cmd, sendArgs, true);
+                    sendArgs = DoEncryption(clientId, cmd, originalArgs, true);
                 byte[] buffer = Encoding.UTF8.GetBytes($"{cmd}{ArgSign}{string.Join(SepSign, sendArgs)}{EndSign}");
                 connections[clientId].Send(buffer);
                 OnSent?.Invoke(cmd, sendArgs);
@@ -155,16 +153,24 @@ public class ServerFragment
                 connections[id].Dispose();
                 return;
             }
-            string[] sendArgs = new string[args.Length + 1];
-            sendArgs[0] = id.ToString();
-            if (args.Length > 0)
-                Array.Copy(args, 0, sendArgs, 1, args.Length);
+            string[] sendArgs = args;
             if (DoEncryption != null)
-                sendArgs = DoEncryption(cmd, sendArgs, true);
+                sendArgs = DoEncryption(id, cmd, args, true);
             byte[] buffer = Encoding.UTF8.GetBytes($"{cmd}{ArgSign}{string.Join(SepSign, sendArgs)}{EndSign}");
             value.Send(buffer);
             OnSent?.Invoke(cmd, sendArgs);
         }
+    }
+
+    private int GetClientId(Socket client)
+    {
+        foreach (int id in connections.Keys)
+        {
+            Socket value = connections[id];
+            if (client == value)
+                return id;
+        }
+        return -1;
     }
 
     // Closes the server socket.
