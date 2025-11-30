@@ -27,7 +27,7 @@ public class CryptoFragment
         return this;
     }
 
-    // Links a ServerFragment with this CryptoFragment, the private path should include a pem file.
+    // Links a ServerFragment with this CryptoFragment.
     public CryptoFragment WithServer(ServerFragment server, string publicPath, string privatePath)
     {
         this.server = server;
@@ -61,11 +61,11 @@ public class CryptoFragment
     }
 
     // Hashes a string (Sha-256).
-    public byte[] Hash(string str)
+    public static string Hash(string str)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(str);
         byte[] result = SHA256.HashData(buffer);
-        return result;
+        return Convert.ToBase64String(result);
     }
 
     // Sends the server's public key to the newly connected client.

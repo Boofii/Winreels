@@ -26,14 +26,8 @@ public class LoggerFragment
     {
         this.name = name;
         string temp = $"{name}.log";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), temp);
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), temp);
-        else
-            throw new Exception($"Couldn't create a log file with name: {name}, unsupported platform.");
-
-        path = temp;
+        temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), temp);
+        this.path = temp;
     }
 
     // Logs a message to either/both the disk/console, based on the mode and the log level.

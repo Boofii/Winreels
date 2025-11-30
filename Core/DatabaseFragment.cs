@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using Microsoft.Data.Sqlite;
 
 namespace Winreels.Core;
@@ -19,14 +18,8 @@ public class DatabaseFragment
     public DatabaseFragment(string name)
     {
         string temp = $"{name}.db";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), temp);
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), temp);
-        else
-            throw new Exception($"Couldn't create a database file with name: {name}, unsupported platform.");
-
-        path = temp;
+        temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), temp);
+        this.path = temp;
     }
 
     // Links a LoggerFragment with this DatabaseFragment.
@@ -139,7 +132,7 @@ public class DatabaseFragment
 }
 
 /// <summary>
-/// This class is used to dynamically create table creation query.
+/// This class is used to dynamically create a table creation query.
 /// The result is given by the ToString method.
 /// </summary>
 public class DatabaseFormat
