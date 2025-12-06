@@ -46,6 +46,12 @@ public class FileFeature
         return this;
     }
 
+    /// <summary>
+    /// Attempts to upload a file to the server on the client side.
+    /// The OnUpload handler int parameter is the response code:
+    ///     1 - Server exception
+    ///     0 - Success
+    /// </summary>
     public void Upload(string name, byte[] data, Action<int> OnUpload)
     {
         if (client == null || this.OnUpload == null || this.OnUpload.ContainsKey(name))
@@ -71,6 +77,17 @@ public class FileFeature
         }
     }
 
+    /// <summary>
+    /// Attempts to download a file from the server on the client side.
+    /// The OnDownload handler has the following arguments:
+    ///     result:
+    ///         1 - Server exception
+    ///         2 - File exists
+    ///         0 - Success
+    ///     chunkIndex
+    ///     chunkCount
+    ///     data
+    /// </summary>
     public void Download(string name, Action<int, int, int, byte[]> OnDownload)
     {
         if (client == null || this.OnDownload == null || this.OnDownload.ContainsKey(name))
@@ -80,6 +97,7 @@ public class FileFeature
         client.Execute("download", [name]);
     }
 
+    // Uploads a file on the server side.
     private void Upload(int id, string[] args)
     {
         if (server == null)
@@ -117,6 +135,7 @@ public class FileFeature
         }
     }
 
+    // Downloads a file on the server side.
     private void Download(int id, string[] args)
     {
         if (server == null)
@@ -130,6 +149,7 @@ public class FileFeature
             if (!File.Exists(newPath))
             {
                 logger?.Log(LogLevel.ERROR, $"Tried to download a file that didn't exist for user, file: {id}, {fileName}.");
+                server.Execute("download_response", [fileName, "2"], id);
                 return;
             }
 
@@ -158,6 +178,7 @@ public class FileFeature
         }
     }
 
+    // Parses commands on the server side.
     private void ParseCommand(int id, string cmd, string[] args)
     {
         switch (cmd)
@@ -177,6 +198,7 @@ public class FileFeature
         }
     }
 
+    // Parses commands on the client side.
     private void ParseCommand(string cmd, string[] args)
     {
         switch (cmd)
