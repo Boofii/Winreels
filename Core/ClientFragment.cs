@@ -53,7 +53,7 @@ public class ClientFragment
             {
                 while (true)
                 {
-                    byte[] buffer = new byte[1024];
+                    byte[] buffer = new byte[4096];
                     int amount = client.Receive(buffer);
                     buffer = [.. buffer.Take(amount)];
 

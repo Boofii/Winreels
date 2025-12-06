@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Winreels.Core;
@@ -9,7 +8,7 @@ namespace Winreels.Core;
 /// </summary>
 public class LoggerFragment
 {
-    private static readonly Mutex mutex = new Mutex(false, "Global\\LoggerMutex");
+    private static readonly Mutex mutex = new(false, "Global\\LoggerMutex");
     private static readonly ConsoleColor[] Colors = [
         ConsoleColor.Green,
         ConsoleColor.Yellow,
@@ -17,7 +16,6 @@ public class LoggerFragment
     ];
 
     public Action<LogLevel, string>? OnLogged;
-
     private readonly string name;
     private readonly string path;
 

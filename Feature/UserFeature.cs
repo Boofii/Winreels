@@ -9,13 +9,16 @@ using Winreels.Core;
 /// </summary>
 public class UserFeature
 {
-    public const int EMAIL_LENGTH = 254;
-    public const int UNAME_LENGTH = 32;
-    public const int PWD_LENGTH = 64;
+    public const uint EMAIL_LENGTH = 254;
+    public const uint UNAME_LENGTH = 32;
+    public const uint PWD_LENGTH = 64;
 
     private LoggerFragment? logger;
     private ServerFragment? server;
     private DatabaseFragment? database;
+    private ClientFragment? client;
+    private Action<int>? OnRegister;
+    private Action<int>? OnLogin;
 
     // Links a LoggerFragment with this UserFeature.
     public UserFeature WithLogger(LoggerFragment logger)
@@ -39,6 +42,51 @@ public class UserFeature
         return this;
     }
 
+    // Links a ClientFragment with this UserFeature.
+    public UserFeature WithCLient(ClientFragment client)
+    {
+        this.client = client;
+        client.OnReceived += ParseCommand;
+        return this;
+    }
+
+    /// <summary>
+    /// Attempts to register a user on the client side.
+    /// The OnRegister handler int parameter is the response code:
+    ///     1 - Invalid email
+    ///     2 - Invalid username
+    ///     3 - Invalid password
+    ///     0 - Success
+    /// </summary>
+    public void Register(string email, string username, string password, Action<int> OnRegister)
+    {
+        if (client == null)
+            return;
+        
+        if (this.OnRegister == null)
+            this.OnRegister = OnRegister;
+
+        client.Execute("register", [email, username, password]);
+    }
+
+    /// <summary>
+    /// Attempts to login to a user on the client side.
+    /// The OnLogin handler int parameter is the response code:
+    ///     1 - Invalid details
+    ///     0 - Success
+    /// </summary>
+    public void Login(string username, string password, Action<int> OnLogin)
+    {
+        if (client == null)
+            return;
+        
+        if (this.OnLogin == null)
+            this.OnLogin = OnLogin;
+
+        client.Execute("login", [username, password]);
+    }
+
+    // Attempts to register a user on the server side.
     private void Register(int id, string email, string username, string password)
     {
         if (server == null || database == null)
@@ -68,6 +116,7 @@ public class UserFeature
         logger?.Log(LogLevel.INFO, $"Added a user named: {username}.");
     }
 
+    // Attempts to login to a user on the server side.
     private void Login(int id, string username, string password)
     {
         if (server == null || database == null)
@@ -85,6 +134,7 @@ public class UserFeature
         logger?.Log(LogLevel.INFO, $"Signed in to a user named: {username}.");
     }
 
+    // Parses commands on the server side.
     private void ParseCommand(int id, string cmd, string[] args)
     {
         switch (cmd)
@@ -100,6 +150,20 @@ public class UserFeature
                     return;
                 
                 Login(id, args[0], args[1]);
+                break;
+        }
+    }
+
+    // Parses commands on the client side.
+    private void ParseCommand(string cmd, string[] args)
+    {
+        switch (cmd)
+        {
+            case "register_response":
+                OnRegister?.Invoke(int.Parse(args[0]));
+                break;
+            case "login_response":
+                OnLogin?.Invoke(int.Parse(args[0]));
                 break;
         }
     }

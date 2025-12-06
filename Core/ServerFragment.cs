@@ -66,7 +66,7 @@ public class ServerFragment
                         {
                             while (true)
                             {
-                                byte[] buffer = new byte[2048];
+                                byte[] buffer = new byte[4096];
                                 int amount = client.Receive(buffer);
                                 buffer = [.. buffer.Take(amount)];
 
