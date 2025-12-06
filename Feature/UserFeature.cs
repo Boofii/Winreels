@@ -142,7 +142,7 @@ public class UserFeature
             case "register":
                 if (args.Length != 3)
                     return;
-                
+
                 Register(id, args[0], args[1], args[2]);
                 break;
             case "login":

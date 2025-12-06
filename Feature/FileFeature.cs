@@ -1,4 +1,4 @@
-using System.Text;
+using System.IO.Enumeration;
 using Winreels.Core;
 
 namespace Winreels.Feature;
@@ -6,21 +6,31 @@ namespace Winreels.Feature;
 /// <summary>
 /// This class is used to send and receive files to/from a server.
 /// Upload files using the upload command and download them using the download command.
-/// The maximum size for a file is 25 MB.
 /// </summary>
 public class FileFeature
 {
     public const uint MAX_SIZE = 25000000;
     public const uint IO_RATE = 1000;
 
+    private readonly Dictionary<string, Action<int, int, int, byte[]>>? OnDownload = [];
+    private readonly Dictionary<string, Action<int>>? OnUpload = [];
+    private LoggerFragment? logger;
     private ServerFragment? server;
     private ClientFragment? client;
     private string? path;
     
+    // Links a LoggerFragment with this FileFeature
+    public FileFeature WithLogger(LoggerFragment logger)
+    {
+        this.logger = logger;
+        return this;
+    }
+
     // Links a ServerFragment with this FileFeature
     public FileFeature WithServer(string name, ServerFragment server)
     {
         this.server = server;
+        server.OnReceived += ParseCommand;
         string temp = $"{name}";
         temp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), temp);
         this.path = temp;
@@ -32,29 +42,151 @@ public class FileFeature
     public FileFeature WithClient(ClientFragment client)
     {
         this.client = client;
+        client.OnReceived += ParseCommand;
         return this;
     }
 
-    public void Upload(string name, byte[] data)
+    public void Upload(string name, byte[] data, Action<int> OnUpload)
     {
-        if (client == null)
+        if (client == null || this.OnUpload == null || this.OnUpload.ContainsKey(name))
+            return;
+
+        this.OnUpload[name] = OnUpload;
+
+        uint chunkCount = (uint)Math.Ceiling((double)data.Length / IO_RATE);
+        int index = 0;
+
+        for (uint i = 0; i < chunkCount; i++)
+        {
+            int remaining = data.Length - index;
+            int size = Math.Min((int)IO_RATE, remaining);
+            byte[] current = new byte[size];
+
+            Array.Copy(data, index, current, 0, size);
+            string encoded = Convert.ToBase64String(current);
+
+            client.Execute("upload", [name, i.ToString(), chunkCount.ToString(), encoded]);
+            index += size;
+            Thread.Sleep(2);
+        }
+    }
+
+    public void Download(string name, Action<int, int, int, byte[]> OnDownload)
+    {
+        if (client == null || this.OnDownload == null || this.OnDownload.ContainsKey(name))
+            return;
+
+        this.OnDownload[name] = OnDownload;
+        client.Execute("download", [name]);
+    }
+
+    private void Upload(int id, string[] args)
+    {
+        if (server == null)
             return;
         
-        double amount = Math.Ceiling((double) (data.Length / IO_RATE));
-        uint index = 0;
-        for (int i = 0; i < amount; i++)
-        {
-            byte[] current = new byte[IO_RATE];
-            for (int j = 0; j < IO_RATE; j++)
+        try {
+            string fileName = args[0];
+            uint chunkId = uint.Parse(args[1]);
+            uint chunkAmount = uint.Parse(args[2]);
+            byte[] data = Convert.FromBase64String(args[3]);
+
+            string newPath = Path.Combine(path, fileName);
+
+            if (chunkId <= 0)
             {
-                if (index + j >= data.Length)
-                    break;
-                current[j] = data[index + j];
+                logger?.Log(LogLevel.INFO, $"Started processing a file named: {fileName}.");
+                File.WriteAllBytes(newPath, data);
             }
-            string encoded = Encoding.UTF8.GetString(current);
-            client.Execute("upload", [name, i.ToString(), amount.ToString(), encoded]);
-            Thread.Sleep(1);
-            index += IO_RATE;
+            else if (chunkId < chunkAmount - 1)
+            {
+                logger?.Log(LogLevel.INFO, $"Received a new chunk for file, chunkId: {fileName}, {chunkId}.");
+                File.AppendAllBytes(newPath, data);
+            }
+            else
+            {
+                logger?.Log(LogLevel.INFO, $"Finished receiving a file: {fileName}.");
+                File.AppendAllBytes(newPath, data);
+                server.Execute("upload_response", [fileName, "0"], id);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.Log(LogLevel.ERROR, $"Data for file upload was incorrect for user, exception: {id}, {ex}.");
+            server.Execute("upload_response", [args[0], "1"], id);
+        }
+    }
+
+    private void Download(int id, string[] args)
+    {
+        if (server == null)
+            return;
+        
+        try
+        {
+            string fileName = args[0];
+            string newPath = Path.Combine(path, fileName);
+
+            if (!File.Exists(newPath))
+            {
+                logger?.Log(LogLevel.ERROR, $"Tried to download a file that didn't exist for user, file: {id}, {fileName}.");
+                return;
+            }
+
+            byte[] data = File.ReadAllBytes(newPath);
+            uint chunkCount = (uint)Math.Ceiling((double)data.Length / IO_RATE);
+            int index = 0;
+
+            for (uint i = 0; i < chunkCount; i++)
+            {
+                int remaining = data.Length - index;
+                int size = Math.Min((int)IO_RATE, remaining);
+                byte[] current = new byte[size];
+
+                Array.Copy(data, index, current, 0, size);
+                string encoded = Convert.ToBase64String(current);
+
+                server.Execute("download_response", [fileName, "0", i.ToString(), chunkCount.ToString(), encoded], id);
+                index += size;
+                Thread.Sleep(2);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.Log(LogLevel.ERROR, $"Data for file download was incorrect for user, exception: {id}, {ex}.");
+            server.Execute("download_response", [args[0], "1"], id);
+        }
+    }
+
+    private void ParseCommand(int id, string cmd, string[] args)
+    {
+        switch (cmd)
+        {
+            case "upload":
+                if (args.Length != 4)
+                    return;
+
+                Upload(id, args);
+                break;
+            case "download":
+                if (args.Length != 1)
+                    return;
+
+                Download(id, args);
+                break;
+        }
+    }
+
+    private void ParseCommand(string cmd, string[] args)
+    {
+        switch (cmd)
+        {
+            case "upload_response":
+                OnUpload?[args[0]].Invoke(int.Parse(args[1]));
+                break;
+            case "download_response":
+                OnDownload?[args[0]].Invoke(int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), Convert.FromBase64String(args[4]));
+                break;
         }
     }
 }
