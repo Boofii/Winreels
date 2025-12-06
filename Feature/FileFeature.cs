@@ -1,4 +1,3 @@
-using System.IO.Enumeration;
 using Winreels.Core;
 
 namespace Winreels.Feature;
@@ -12,8 +11,8 @@ public class FileFeature
     public const uint MAX_SIZE = 25000000;
     public const uint IO_RATE = 1000;
 
-    private readonly Dictionary<string, Action<int, int, int, byte[]>>? OnDownload = [];
-    private readonly Dictionary<string, Action<int>>? OnUpload = [];
+    private readonly Dictionary<string, Action<int, int, int, byte[]>> OnDownload = [];
+    private readonly Dictionary<string, Action<int>> OnUpload = [];
     private LoggerFragment? logger;
     private ServerFragment? server;
     private ClientFragment? client;
@@ -178,6 +177,37 @@ public class FileFeature
         }
     }
 
+    // Handles a download response on the client side.
+    private void DownloadHandler(string[] args)
+    {
+        string fileName = args[0];
+        int code = int.Parse(args[1]);
+        int chunkId = int.Parse(args[2]);
+        int chunkAmount = int.Parse(args[3]);
+        byte[] data = Convert.FromBase64String(args[4]);
+
+        string newPath = Path.Combine(Path.GetTempPath(), fileName);
+        
+        if (chunkId <= 0)
+        {
+            logger?.Log(LogLevel.INFO, $"Started processing a file named: {fileName}.");
+            File.WriteAllBytes(newPath, data);
+        }
+        else if (chunkId < chunkAmount - 1)
+        {
+            logger?.Log(LogLevel.INFO, $"Received a new chunk for file, chunkId: {fileName}, {chunkId}.");
+            File.AppendAllBytes(newPath, data);
+        }
+        else
+        {
+            logger?.Log(LogLevel.INFO, $"Finished receiving a file: {fileName}.");
+            File.AppendAllBytes(newPath, data);
+            OnDownload[fileName].Invoke(code, chunkId, chunkAmount, File.ReadAllBytes(newPath));
+            File.Delete(newPath);
+            OnDownload.Remove(fileName);
+        }
+    }
+
     // Parses commands on the server side.
     private void ParseCommand(int id, string cmd, string[] args)
     {
@@ -204,10 +234,11 @@ public class FileFeature
         switch (cmd)
         {
             case "upload_response":
-                OnUpload?[args[0]].Invoke(int.Parse(args[1]));
+                OnUpload[args[0]].Invoke(int.Parse(args[1]));
+                OnUpload.Remove(args[0]);
                 break;
             case "download_response":
-                OnDownload?[args[0]].Invoke(int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), Convert.FromBase64String(args[4]));
+                DownloadHandler(args);
                 break;
         }
     }

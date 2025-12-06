@@ -10,6 +10,15 @@ namespace Winreels.Core;
 /// </summary>
 public class ServerFragment
 {
+    public static readonly string[] UnprintedCommands = [
+        "public_key",
+        "aes_key",
+        "upload",
+        "download",
+        "upload_response",
+        "download_response"  
+    ];
+
     public static readonly string EndSign = "<|EOM|>";
     public static readonly string ArgSign = "<|EON|>";
     public static readonly string SepSign = "<|EOA|>";
@@ -87,7 +96,7 @@ public class ServerFragment
                                         if (DoDecryption != null)
                                             args = DoDecryption(id, name, args, true);
 
-                                        if (!name.StartsWith("public_key") && !name.StartsWith("aes_key"))
+                                        if (!UnprintedCommands.Contains(name))
                                             logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
                                         OnReceived?.Invoke(id, name, args);
                                     }
