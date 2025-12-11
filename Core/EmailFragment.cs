@@ -18,6 +18,7 @@ public class EmailFragment
     private readonly string password;
     private readonly bool useSsl;
 
+    // Creates a new EmailFragment.
     public EmailFragment(string provider, string password, bool useSsl)
     {
         this.server = "smtp.gmail.com";

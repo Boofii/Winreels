@@ -19,7 +19,7 @@ public class LoggerFragment
     private readonly string name;
     private readonly string path;
 
-    // Creates a LoggerFragment, the name is used for naming the log file on disk.
+    // Creates a new LoggerFragment, the name is used for naming the log file on disk.
     public LoggerFragment(string name)
     {
         this.name = name;
