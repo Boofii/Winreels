@@ -8,14 +8,17 @@ namespace Winreels;
 /// </summary>
 public class DataFeature
 {
-    private readonly ServerFragment? server;
-    private readonly string? name;
-    private readonly DatabaseFragment? database;
-    private readonly Dictionary<string, Func<object, int>> rules = [];
-    private readonly Dictionary<string, Action<string[]>> commands = [];
+    protected ServerFragment? server;
+    protected string? name;
+    protected DatabaseFragment? database;
+    protected readonly Dictionary<string, Func<object, int>> rules = [];
+    protected readonly Dictionary<string, Action<int, string[]>> serverCommands = [];
 
-    // Creates a new DataFeature.
-    public DataFeature(ServerFragment server, string name, DatabaseFormat format)
+    protected ClientFragment? client;
+    protected readonly Dictionary<string, Action<string[]>> clientCommands = [];
+
+    // Links a ServerFragment with this DataFeature.
+    public DataFeature WithServer(ServerFragment server, string name, DatabaseFormat format)
     {
         this.server = server;
         server.OnReceived += ParseCommand;
@@ -23,9 +26,18 @@ public class DataFeature
         this.database = new DatabaseFragment(name)
             .WithFormat(format);
         database.Establish();
+        return this;
     }
 
-    // Adds a rule (a condition) for a certain value linked to a key.
+    // Links a ClientFragment with this DataFeature.
+    public DataFeature WithClient(ClientFragment client)
+    {
+        this.client = client;
+        client.OnReceived += ParseCommand;
+        return this;
+    }
+
+    // Adds a rule (a condition) for a certain value linked to a key on the server side.
     public DataFeature AddRule(string fieldName, Func<object, int> rule)
     {
         if (this.database == null)
@@ -35,20 +47,30 @@ public class DataFeature
         return this;
     }
 
-    // Adds a response for a certain command name.
-    public DataFeature AddCommand(string cmd, Action<string[]> action)
+    // Adds a response for a certain command name on the server side.
+    public DataFeature AddCommandServer(string cmd, Action<int, string[]> action)
     {
-        if (this.database == null)
+        if (this.server == null || this.database == null)
             return this;
         
-        commands.TryAdd(cmd, action);
+        serverCommands.TryAdd(cmd, action);
+        return this;
+    }
+
+    // Adds a handler for a certain command response on the client side.
+    public DataFeature AddCommandClient(string cmd, Action<string[]> action)
+    {
+        if (this.client == null)
+            return this;
+
+        clientCommands.TryAdd(cmd, action);
         return this;
     }
 
     // Inserts values into the database, and returns 0 if done, or a certain rule's error code.
     public int Put(string[] keys, object[] values)
     {
-        if (database == null)
+        if (server == null || database == null)
             return -1;
         
         string sql1 = $"INSERT INTO {name} (";
@@ -83,7 +105,7 @@ public class DataFeature
     // Returns true if the keys with their matching values exist in the database.
     public bool Exists(string[] keys, object[] values)
     {
-        if (database == null)
+        if (server == null || database == null)
             return false;
 
         string sql = $"SELECT * FROM {name} WHERE ";
@@ -113,9 +135,18 @@ public class DataFeature
     // Parses a command on the server side.
     private void ParseCommand(int id, string cmd, string[] args)
     {
-        if (commands.TryGetValue(cmd, out Action<string[]>? action))
+        if (serverCommands.TryGetValue(cmd, out Action<int, string[]>? action))
         {
-            action.Invoke(args);
+            action?.Invoke(id, args);
+        }
+    }
+
+    // Parses a command on the client side.
+    private void ParseCommand(string cmd, string[] args)
+    {
+        if (clientCommands.TryGetValue(cmd, out Action<string[]>? action))
+        {
+            action?.Invoke(args);
         }
     }
 }

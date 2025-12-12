@@ -1,3 +1,3 @@
 # Winreels
->Winreels is an app for windows and linux.
->It is meant to be similar to instagram, and works entirely on the terminal.
+>Winreels is an instagram-like app for windows and linux.
+>It works entirely on the terminal.

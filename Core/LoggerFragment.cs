@@ -16,8 +16,9 @@ public class LoggerFragment
     ];
 
     public Action<LogLevel, string>? OnLogged;
-    private readonly string name;
-    private readonly string path;
+    
+    public readonly string name;
+    public readonly string path;
 
     // Creates a new LoggerFragment, the name is used for naming the log file on disk.
     public LoggerFragment(string name)

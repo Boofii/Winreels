@@ -38,6 +38,7 @@ public class ServerFragment
     private int currConnection = 0;
     private Socket? server;
 
+    // Creates a new ServerFragment.
     public ServerFragment(string address, int port, int maxQueue = 10, int maxConnections = 10)
     {
         this.address = address;

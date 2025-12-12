@@ -13,6 +13,7 @@ public class FileFeature
 
     private readonly Dictionary<string, Action<int, int, int, byte[]>> OnDownload = [];
     private readonly Dictionary<string, Action<int>> OnUpload = [];
+    
     private LoggerFragment? logger;
     private ServerFragment? server;
     private ClientFragment? client;

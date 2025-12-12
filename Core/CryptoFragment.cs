@@ -14,6 +14,7 @@ public class CryptoFragment
     private LoggerFragment? logger;
     private ServerFragment? server;
     private ClientFragment? client;
+    
     private string? publicPath;
     private RSA? publicKey;
     private RSA? privateKey;
