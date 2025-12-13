@@ -22,8 +22,8 @@ public class UserFeature : DataFeature
 
     private LoggerFragment? logger;
 
-    public Action<string[]>? OnRegister;
-    public Action<string[]>? OnLogin;
+    public Action<int>? OnRegister;
+    public Action<int>? OnLogin;
 
     // Creates a new UserFeature on the server side.
     public UserFeature(ServerFragment server)
@@ -31,14 +31,43 @@ public class UserFeature : DataFeature
         this.WithServer(server, NAME, FORMAT);
         this.AddCommandServer("register", Register);
         this.AddCommandServer("login", Login);
+        this.AddRule("email", input =>
+        {
+            string? email = input.ToString();
+            if (email != null && email.Length > 0 && email.Length < EMAIL_LENGTH)
+                return 0;
+            return 3;
+        });
+        this.AddRule("username", input =>
+        {
+            string? username = input.ToString();
+            if (username != null && username.Length > 0 && username.Length < UNAME_LENGTH)
+                return 0;
+            return 4;
+        });
+        this.AddRule("password", input =>
+        {
+            string? password = input.ToString();
+            if (password != null && password.Length > 0 && password.Length < PWD_LENGTH)
+                return 0;
+            return 5;
+        });
     }
 
     // Creates a new UserFeature on the client side.
     public UserFeature(ClientFragment client)
     {
         this.WithClient(client);
-        this.AddCommandClient("register_response", OnRegister);
-        this.AddCommandClient("login_response", OnLogin);
+        this.AddCommandClient("register_response", args =>
+        {
+            int status = int.Parse(args[0]);
+            OnRegister?.Invoke(status);
+        });
+        this.AddCommandClient("login_response", args =>
+        {
+            int status = int.Parse(args[0]);
+            OnLogin?.Invoke(status);
+        });
     }
 
     // Links a LoggerFragment with this UserFeature.
@@ -58,13 +87,12 @@ public class UserFeature : DataFeature
     ///     5 - Password invalid
     ///     0 - Success
     /// </summary>
-    public void Register(string email, string username, string password, Action<string[]> OnRegister)
+    public void Register(string email, string username, string password, Action<int> OnRegister)
     {
         if (client == null)
             return;
         
-        if (this.OnRegister == null)
-            this.OnRegister = OnRegister;
+        this.OnRegister = OnRegister;
 
         client.Execute("register", [email, username, password]);
     }
@@ -76,13 +104,12 @@ public class UserFeature : DataFeature
     ///     2 - Invalid password
     ///     0 - Success
     /// </summary>
-    public void Login(string username, string password, Action<string[]> OnLogin)
+    public void Login(string username, string password, Action<int> OnLogin)
     {
         if (client == null)
             return;
         
-        if (this.OnLogin == null)
-            this.OnLogin = OnLogin;
+        this.OnLogin = OnLogin;
 
         client.Execute("login", [username, password]);
     }
@@ -109,9 +136,9 @@ public class UserFeature : DataFeature
         }
 
         string hash = CryptoFragment.Hash(password);
-        this.Put(["email", "username", "password"], [email, username, hash]);
-        server.Execute("register_response", ["0"], id);
-        logger?.Log(LogLevel.INFO, $"Added a user named: {username}.");
+        int result = this.Put(["email", "username", "password"], [email, username, hash]);
+        server.Execute("register_response", [result.ToString()], id);
+        logger?.Log(LogLevel.INFO, $"Status code for registeration for username: {username} is {result}.");
     }
 
     // Attempts to login to a user on the server side.
@@ -136,6 +163,6 @@ public class UserFeature : DataFeature
         }
 
         server.Execute("login_response", ["0"], id);
-        logger?.Log(LogLevel.INFO, $"Signed in to a user named: {username}.");
+        logger?.Log(LogLevel.INFO, $"Status code for login for username: {username} is 0.");
     }
 }

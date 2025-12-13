@@ -14,7 +14,7 @@ public class MainInterface
     public const float FIELD_START_Y = 0.28F;
     public const float FIELD_SKIP = 0.15F;
 
-    public Color mBorderColor = Color.Gray;
+    public Color mBorderColor = Color.Black;
     public Color mIdleColor = Color.DarkRed;
     public Color mHighlightColor = Color.Red;
     public Color fIdleColor = Color.Green;
@@ -137,7 +137,7 @@ public class MainInterface
         AnsiConsole.Clear();
 
         Table menu = new Table()
-            .Border(TableBorder.Double)
+            .Border(TableBorder.Rounded)
             .BorderColor(mBorderColor)
             .Centered();
 
