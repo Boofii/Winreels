@@ -1,9 +1,8 @@
 using Spectre.Console;
 using Winreels.Core;
-using Winreels.Interface;
 using WinReels.Feature;
 
-namespace Winreels;
+namespace Winreels.Interface;
 
 /// <summary>
 /// This class is used to create a TUI for registering a user and logging in to a user.

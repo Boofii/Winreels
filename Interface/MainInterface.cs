@@ -221,7 +221,7 @@ public class MainInterface
                         string text = texts[currentScene][currentField];
                         if (key == ConsoleKey.Backspace && text.Length > 0)
                             text = text[..^1];
-                        else if ((char.IsLetter(ch) || char.IsDigit(ch)) && text.Length < MAX_LENGTH)
+                        else if (!char.IsControl(ch) && text.Length < MAX_LENGTH)
                             text += ch;
                         texts[currentScene][currentField] = text;
                     }
