@@ -156,7 +156,7 @@ public class UserFeature : DataFeature
             return;
         }
         string hash = CryptoFragment.Hash(password);
-        if (!this.Exists(["password"], [hash]))
+        if (!this.Exists(["username", "password"], [username, hash]))
         {
             server.Execute("login_response", ["2"], id);
             return;
