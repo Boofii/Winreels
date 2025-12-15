@@ -28,12 +28,14 @@ public class MainInterface
 
     public Action<int>? OnSceneDraw;
     public Action<int, int, string>? OnFieldEnter;
-    public static readonly Action<ConsoleKey, char, ConsoleModifiers>? OnInput;
+    public readonly Action<ConsoleKey, char, ConsoleModifiers>? OnInput;
 
-    private static Thread? inputThread;
-    private static Thread? resizeThread;
-    private static int lastWidth;
-    private static int lastHeight;
+    private Thread? inputThread;
+    private Thread? resizeThread;
+    private int lastWidth;
+    private int lastHeight;
+    private bool inputRunning = true;
+    private bool resizeRunning = true;
 
     // Adds a scene to this MainInterface.
     public MainInterface AddScene(string name)
@@ -74,7 +76,7 @@ public class MainInterface
     }
 
     // Initializes and renders the first scene, call this after registering scenes and events.
-    public void Initialize()
+    public virtual void Initialize()
     {
         if (inputThread == null)
         {
@@ -82,7 +84,7 @@ public class MainInterface
             {
                 IAnsiConsoleInput input = AnsiConsole.Console.Input;
 
-                while (true)
+                while (inputRunning)
                 {
                     if (input.IsKeyAvailable())
                     {
@@ -108,7 +110,7 @@ public class MainInterface
                 lastWidth  = Console.BufferWidth;
                 lastHeight = Console.BufferHeight;
 
-                while (true)
+                while (resizeRunning)
                 {
                     int currWidth = Console.BufferWidth;
                     int currHeight = Console.BufferHeight;
@@ -227,5 +229,12 @@ public class MainInterface
                 }
                 break;
         }
+    }
+    
+    public void Close()
+    {
+        inputRunning = false;
+        resizeRunning = false;
+        AnsiConsole.Clear();
     }
 }
