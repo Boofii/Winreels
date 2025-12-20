@@ -135,8 +135,7 @@ public class UserFeature : DataFeature
             return;
         }
 
-        string hash = CryptoFragment.Hash(password);
-        int result = this.Put(["email", "username", "password"], [email, username, hash]);
+        int result = this.Put(["email", "username", "password"], [email, username, password]);
         server.Execute("register_response", [result.ToString()], id);
         logger?.Log(LogLevel.INFO, $"Status code for registeration for username: {username} is {result}.");
     }

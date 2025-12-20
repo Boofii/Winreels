@@ -87,6 +87,10 @@ public class DataFeature
                     return result;
                 }
             }
+            if (key == "password")
+            {
+                values[i] = CryptoFragment.Hash(value.ToString());
+            }
             sql1 += key;
             sql2 += $"@{key}";
             if (i < keys.Length - 1)
