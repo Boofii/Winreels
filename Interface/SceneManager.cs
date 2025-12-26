@@ -126,7 +126,7 @@ public static class SceneManager
     }
 
     // Renders the current scene.
-    private static void RenderScene()
+    public static void RenderScene()
     {
         AnsiConsole.Clear();
         RenderSceneBar();
@@ -161,6 +161,9 @@ public abstract class Scene()
 
     public virtual void OnInput(ConsoleKeyInfo info)
     {
+        if (fields.Count <= 0)
+            return;
+
         switch (info.Key)
         {
             case ConsoleKey.Enter:
@@ -191,7 +194,7 @@ public abstract class Scene()
 /// <summary>
 /// This class contains data for a field instance.
 /// </summary>
-public class Field(string name, bool writeable)
+public class Field(string name, bool writeable, int width = 36, int height = 3)
 {
     public static readonly Color IDLE_COLOR = Color.FromHex("#b99210ff");
     public static readonly Color ACTIVE_COLOR = Color.FromHex("#fed43f");
@@ -199,6 +202,8 @@ public class Field(string name, bool writeable)
 
     public readonly string name = name;
     public readonly bool writeable = writeable;
+    public readonly int width = width;
+    public readonly int height = height;
     public string text = "";
     public Action? OnEnter;
 
@@ -209,8 +214,8 @@ public class Field(string name, bool writeable)
             .Header(name)
             .BorderColor(isActive ? ACTIVE_COLOR : IDLE_COLOR)
             .RoundedBorder();
-        p.Width = 36;
-        p.Height = 3;
+        p.Width = width;
+        p.Height = height;
 
         Table t1 = new Table()
             .AddColumn(new TableColumn(p))

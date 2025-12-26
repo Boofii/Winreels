@@ -40,6 +40,8 @@ public class ClientInterface
     public readonly CryptoFragment crypto;
     public readonly UserFeature uf;
 
+    public string username = "";
+
     public ClientInterface()
     {
         this.client = new ClientFragment("127.0.0.1", 4098);
@@ -92,6 +94,17 @@ public class LoginScene : Scene
         {
             string text = (response == 0) ? "[green]Success[/]" : "[red]Fail[/]";
             AnsiConsole.Write(new Markup(text).Centered());
+
+            if (response != 0)
+                return;
+            
+            AnsiConsole.Clear();
+            ClientInterface.Instance.username = username;
+            SceneManager.RemoveScene(SceneManager.Scenes[1]);
+            SceneManager.RemoveScene(SceneManager.Scenes[0]);
+            SceneManager.AddScene(new ChatInterface());
+            SceneManager.Scenes[0].Initialize();
+            SceneManager.Scenes[0].Render();
         });
     }
 }
