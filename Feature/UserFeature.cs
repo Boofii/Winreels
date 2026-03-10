@@ -1,4 +1,4 @@
-namespace WinReels.Feature;
+namespace Winreels.Feature;
 
 using Winreels;
 using Winreels.Core;
@@ -161,7 +161,7 @@ public class UserFeature : DataFeature
             return;
         }
 
-        server.actConnections.Add(id);
+        server.actConnections.Add(id, username);
         server.Execute("login_response", ["0"], id);
         logger?.Log(LogLevel.INFO, $"Status code for login for username: {username} is 0.");
     }

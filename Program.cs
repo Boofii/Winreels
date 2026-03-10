@@ -1,6 +1,5 @@
 using Winreels.Core;
 using Winreels.Feature;
-using WinReels.Feature;
 
 namespace Winreels;
 
@@ -42,6 +41,7 @@ public static class Program
                     ServerVmanager = vf1;
                 });
                 t1.Start();
+                t1.Join();
                 break;
             case 'c':
                 Thread t2 = new Thread(() =>
@@ -63,10 +63,11 @@ public static class Program
                     ClientVmanager = vf2;
 
                     ApplicationConfiguration.Initialize();
-                    Application.Run(new LoginInterface());
+                    Application.Run(new UserInterface());
                 });
                 t2.SetApartmentState(ApartmentState.STA);
                 t2.Start();
+                t2.Join();
                 break;
         }
     }

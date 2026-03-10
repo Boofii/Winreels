@@ -3,11 +3,11 @@ namespace Winreels;
 /// <summary>
 /// Responsible for the login user interface.
 /// </summary>
-public partial class VideoInterface : Form
+public partial class UploadInterface : Form
 {
     private string? path = null;
 
-    public VideoInterface()
+    public UploadInterface()
     {
         InitializeComponent();
     }
@@ -24,19 +24,23 @@ public partial class VideoInterface : Form
     {
         if (path != null)
         {
-            string description = this.description.Text;
-            string tags = this.tags.Text;
-            Program.ClientVmanager?.Upload(path, description, tags, (status) =>
+            Thread uploadThread = new Thread(() =>
             {
-                MessageBox.Show(status.ToString());
+                string description = this.description.Text;
+                string tags = this.tags.Text;
+                Program.ClientVmanager?.Upload(path, description, tags, (status) =>
+                {
+                    MessageBox.Show(status.ToString());
+                });
             });
+            uploadThread.Start();
         }
     }
 
     private void Watch(object sender, EventArgs args)
     {
         WatchInterface wi = new WatchInterface();
-        this.Hide();
+        this.Close();
         wi.Show();
     }
 }

@@ -9,7 +9,7 @@ namespace Winreels.Feature;
 public class FileFeature
 {
     public const uint MAX_SIZE = 25000000;
-    public const uint IO_RATE = 1000;
+    public const uint IO_RATE = 8000;
 
     private readonly Dictionary<string, Action<int, int, int, string>> OnDownload = [];
     private readonly Dictionary<string, Action<int>> OnUpload = [];
@@ -63,6 +63,9 @@ public class FileFeature
 
         for (uint i = 0; i < chunkCount; i++)
         {
+            if (!this.OnUpload.ContainsKey(name))
+                return;
+
             int remaining = data.Length - index;
             int size = Math.Min((int)IO_RATE, remaining);
             byte[] current = new byte[size];
@@ -72,7 +75,7 @@ public class FileFeature
 
             client.Execute("upload", [name, i.ToString(), chunkCount.ToString(), encoded]);
             index += size;
-            Thread.Sleep(2);
+            Thread.Sleep(1);
         }
     }
 
@@ -99,19 +102,27 @@ public class FileFeature
     // Uploads a file on the server side.
     private void Upload(int id, string[] args)
     {
-        if (server == null)
+        if (server == null || path == null)
             return;
-        
-        try {
+
+        try
+        {
             string fileName = args[0];
+
+            string newPath = Path.Combine(path, fileName);
             uint chunkId = uint.Parse(args[1]);
             uint chunkAmount = uint.Parse(args[2]);
             byte[] data = Convert.FromBase64String(args[3]);
 
-            string newPath = Path.Combine(path, fileName);
-
             if (chunkId <= 0)
             {
+                if (File.Exists(newPath))
+                {
+                    logger?.Log(LogLevel.INFO, $"Finished receiving a file: {fileName}.");
+                    server.Execute("upload_response", [fileName, "0"], id);
+                    return;
+                }
+
                 logger?.Log(LogLevel.INFO, $"Started processing a file named: {fileName}.");
                 File.WriteAllBytes(newPath, data);
             }
@@ -137,7 +148,7 @@ public class FileFeature
     // Downloads a file on the server side.
     private void Download(int id, string[] args)
     {
-        if (server == null)
+        if (server == null || path == null)
             return;
         
         try
@@ -167,7 +178,7 @@ public class FileFeature
 
                 server.Execute("download_response", [fileName, "0", i.ToString(), chunkCount.ToString(), encoded], id);
                 index += size;
-                Thread.Sleep(2);
+                Thread.Sleep(1);
             }
         }
         catch (Exception ex)
@@ -187,9 +198,20 @@ public class FileFeature
         byte[] data = Convert.FromBase64String(args[4]);
 
         string newPath = Path.Combine(Path.GetTempPath(), fileName);
-        
+
+        if (!OnDownload.ContainsKey(fileName))
+            return;
+
         if (chunkId <= 0)
         {
+            if (File.Exists(newPath))
+            {
+                logger?.Log(LogLevel.INFO, $"Finished receiving a file: {fileName}.");
+                OnDownload[fileName].Invoke(code, chunkId, chunkAmount, newPath);
+                OnDownload.Remove(fileName);
+                return;
+            }
+
             logger?.Log(LogLevel.INFO, $"Started processing a file named: {fileName}.");
             File.WriteAllBytes(newPath, data);
         }
@@ -203,7 +225,6 @@ public class FileFeature
             logger?.Log(LogLevel.INFO, $"Finished receiving a file: {fileName}.");
             File.AppendAllBytes(newPath, data);
             OnDownload[fileName].Invoke(code, chunkId, chunkAmount, newPath);
-            // File.Delete(newPath);
             OnDownload.Remove(fileName);
         }
     }

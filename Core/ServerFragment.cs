@@ -30,7 +30,7 @@ public class ServerFragment
     public static readonly string SepSign = "<|EOA|>";
 
     public readonly Dictionary<int, Socket> connections = [];
-    public readonly List<int> actConnections = [];
+    public readonly Dictionary<int, string> actConnections = [];
     public Action<int, Socket>? OnConnection;
     public Action<string, string[]>? OnSent;
     public Action<int, string, string[]>? OnReceived;
@@ -81,40 +81,45 @@ public class ServerFragment
                     {
                         try
                         {
+                            var sb = new StringBuilder();
                             while (true)
                             {
-                                byte[] buffer = new byte[4096];
+                                byte[] buffer = new byte[8192];
                                 int amount = client.Receive(buffer);
-                                buffer = [.. buffer.Take(amount)];
+                                if (amount <= 0)
+                                    break;
+                                string chunk = Encoding.UTF8.GetString(buffer, 0, amount);
+                                sb.Append(chunk);
 
-                                string cmd = Encoding.UTF8.GetString(buffer);
-                                if (cmd.Contains(EndSign))
+                                string all = sb.ToString();
+                                int endIndex;
+                                while ((endIndex = all.IndexOf(EndSign, StringComparison.Ordinal)) >= 0)
                                 {
-                                    string[] messages = cmd.Split(EndSign);
-                                    foreach (var message in messages)
-                                    {
-                                        if (string.IsNullOrEmpty(message))
-                                            continue;
-                                        string[] splitCmd = message.Split(ArgSign);
-                                        string name = splitCmd[0];
-                                        string[] args = [];
-                                        if (splitCmd.Length > 1)
-                                            args = splitCmd[1].Split(SepSign);
-                                        int id = GetClientId(client);
-                                        if (DoDecryption != null)
-                                            args = DoDecryption(id, name, args, true);
+                                    string message = all.Substring(0, endIndex);
+                                    all = all.Substring(endIndex + EndSign.Length);
 
-                                        // Block commands from unlogged clients.
-                                        if (!UnblockedCommands.Contains(name) && !actConnections.Contains(id))
-                                        {
-                                            return;
-                                        }
+                                    if (string.IsNullOrEmpty(message))
+                                        continue;
 
-                                        if (!UnprintedCommands.Contains(name))
-                                            logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
-                                        OnReceived?.Invoke(id, name, args);
-                                    }
+                                    string[] splitCmd = message.Split([ArgSign], StringSplitOptions.None);
+                                    string name = splitCmd[0];
+                                    string[] args = [];
+                                    if (splitCmd.Length > 1)
+                                        args = splitCmd[1].Split([SepSign], StringSplitOptions.None);
+                                    int id = GetClientId(client);
+                                    if (DoDecryption != null)
+                                        args = DoDecryption(id, name, args, true);
+
+                                    if (!UnblockedCommands.Contains(name) && !actConnections.ContainsKey(id))
+                                        return;
+
+                                    if (!UnprintedCommands.Contains(name))
+                                        logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
+                                    OnReceived?.Invoke(id, name, args);
                                 }
+
+                                sb.Clear();
+                                sb.Append(all);
                             }
                         }
                         catch (SocketException ex)

@@ -1,6 +1,6 @@
 ﻿namespace Winreels;
 
-partial class VideoInterface
+partial class UploadInterface
 {
     /// <summary>
     ///  Required designer variable.
@@ -28,7 +28,6 @@ partial class VideoInterface
     /// </summary>
     private void InitializeComponent()
     {
-        label2 = new Label();
         description = new TextBox();
         tags = new TextBox();
         file = new OpenFileDialog();
@@ -36,35 +35,28 @@ partial class VideoInterface
         publish = new Button();
         watch = new Button();
         backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+        label2 = new Label();
         SuspendLayout();
-        // 
-        // label2
-        // 
-        label2.AutoSize = true;
-        label2.Font = new Font("Segoe UI", 25F, FontStyle.Bold);
-        label2.ForeColor = Color.Gold;
-        label2.Location = new Point(467, 9);
-        label2.Name = "label2";
-        label2.Size = new Size(238, 46);
-        label2.TabIndex = 1;
-        label2.Text = "Video Upload";
-        label2.TextAlign = ContentAlignment.MiddleCenter;
         // 
         // description
         // 
-        description.Location = new Point(513, 143);
+        description.Font = new Font("Aharoni", 9.75F);
+        description.Location = new Point(143, 78);
         description.Name = "description";
-        description.PlaceholderText = "Description";
-        description.Size = new Size(135, 25);
+        description.PlaceholderText = "Content";
+        description.Size = new Size(135, 20);
         description.TabIndex = 4;
+        description.TextAlign = HorizontalAlignment.Center;
         // 
         // tags
         // 
-        tags.Location = new Point(513, 174);
+        tags.Font = new Font("Aharoni", 9.75F);
+        tags.Location = new Point(128, 115);
         tags.Name = "tags";
         tags.PlaceholderText = "Tags (Serperate by ' ')";
-        tags.Size = new Size(135, 25);
+        tags.Size = new Size(160, 20);
         tags.TabIndex = 5;
+        tags.TextAlign = HorizontalAlignment.Center;
         // 
         // file
         // 
@@ -72,49 +64,67 @@ partial class VideoInterface
         // 
         // select_file
         // 
-        select_file.Location = new Point(501, 222);
+        select_file.FlatAppearance.BorderColor = Color.Black;
+        select_file.FlatStyle = FlatStyle.Flat;
+        select_file.Image = Properties.Resources.file;
+        select_file.Location = new Point(156, 152);
         select_file.Name = "select_file";
-        select_file.Size = new Size(75, 23);
+        select_file.Size = new Size(51, 46);
         select_file.TabIndex = 6;
-        select_file.Text = "Select File";
         select_file.UseVisualStyleBackColor = true;
         select_file.Click += SelectFile;
         // 
         // publish
         // 
-        publish.Location = new Point(582, 222);
+        publish.FlatAppearance.BorderColor = Color.Black;
+        publish.FlatStyle = FlatStyle.Flat;
+        publish.Image = Properties.Resources.publish;
+        publish.Location = new Point(213, 143);
         publish.Name = "publish";
-        publish.Size = new Size(75, 23);
+        publish.Size = new Size(43, 39);
         publish.TabIndex = 7;
-        publish.Text = "Publish";
         publish.UseVisualStyleBackColor = true;
         publish.Click += Publish;
         // 
         // watch
         // 
-        watch.Location = new Point(540, 260);
+        watch.FlatAppearance.BorderColor = Color.Black;
+        watch.FlatStyle = FlatStyle.Flat;
+        watch.Image = Properties.Resources.watch;
+        watch.Location = new Point(161, 188);
         watch.Name = "watch";
-        watch.Size = new Size(75, 23);
+        watch.Size = new Size(95, 102);
         watch.TabIndex = 8;
-        watch.Text = "Watch";
         watch.UseVisualStyleBackColor = true;
         watch.Click += Watch;
         // 
-        // VideoInterface
+        // label2
+        // 
+        label2.AutoSize = true;
+        label2.Font = new Font("Aharoni", 25F, FontStyle.Bold);
+        label2.ForeColor = Color.Gold;
+        label2.Location = new Point(128, 19);
+        label2.Name = "label2";
+        label2.Size = new Size(170, 34);
+        label2.TabIndex = 18;
+        label2.Text = "My Video";
+        label2.TextAlign = ContentAlignment.MiddleCenter;
+        // 
+        // UploadInterface
         // 
         AutoScaleDimensions = new SizeF(7F, 17F);
         AutoScaleMode = AutoScaleMode.Font;
         BackColor = Color.Black;
-        ClientSize = new Size(1184, 661);
+        ClientSize = new Size(403, 293);
+        Controls.Add(label2);
         Controls.Add(watch);
         Controls.Add(publish);
         Controls.Add(select_file);
         Controls.Add(tags);
         Controls.Add(description);
-        Controls.Add(label2);
         Font = new Font("Segoe UI", 9.75F);
         ForeColor = Color.Black;
-        Name = "VideoInterface";
+        Name = "UploadInterface";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "Winreels";
         ResumeLayout(false);
@@ -122,8 +132,6 @@ partial class VideoInterface
     }
 
     #endregion
-
-    private Label label2;
     private TextBox description;
     private TextBox tags;
     private OpenFileDialog file;
@@ -131,4 +139,5 @@ partial class VideoInterface
     private Button publish;
     private Button watch;
     private System.ComponentModel.BackgroundWorker backgroundWorker1;
+    private Label label2;
 }

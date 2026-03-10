@@ -60,33 +60,41 @@ public class ClientFragment
 
             Thread listeningThread = new Thread(() =>
             {
+                var sb = new StringBuilder();
                 while (true)
                 {
-                    byte[] buffer = new byte[4096];
+                    byte[] buffer = new byte[8192];
                     int amount = client.Receive(buffer);
-                    buffer = [.. buffer.Take(amount)];
+                    if (amount <= 0)
+                        break;
+                    string chunk = Encoding.UTF8.GetString(buffer, 0, amount);
+                    sb.Append(chunk);
 
-                    string cmd = Encoding.UTF8.GetString(buffer);
-                    if (cmd.Contains(EndSign))
+                    string all = sb.ToString();
+                    int endIndex;
+                    while ((endIndex = all.IndexOf(EndSign, StringComparison.Ordinal)) >= 0)
                     {
-                        string[] messages = cmd.Split(EndSign);
-                        foreach (var message in messages)
-                        {
-                            if (string.IsNullOrEmpty(message))
-                                continue;
-                            string[] splitCmd = message.Split(ArgSign);
-                            string name = splitCmd[0];
-                            string[] args = [];
-                            if (splitCmd.Length > 1)
-                                args = splitCmd[1].Split(SepSign);
-                            if (DoDecryption != null)
-                                args = DoDecryption(-1, name, args, false);
+                        string message = all.Substring(0, endIndex);
+                        all = all.Substring(endIndex + EndSign.Length);
 
-                            if (!UnprintedCommands.Contains(name))
-                                logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
-                            OnReceived?.Invoke(name, args);
-                        }
+                        if (string.IsNullOrEmpty(message))
+                            continue;
+
+                        string[] splitCmd = message.Split(ArgSign);
+                        string name = splitCmd[0];
+                        string[] args = [];
+                        if (splitCmd.Length > 1)
+                            args = splitCmd[1].Split(SepSign);
+                        if (DoDecryption != null)
+                            args = DoDecryption(-1, name, args, false);
+
+                        if (!UnprintedCommands.Contains(name))
+                            logger?.Log(LogLevel.INFO, $"Received a command: {message}.");
+                        OnReceived?.Invoke(name, args);
                     }
+
+                    sb.Clear();
+                    sb.Append(all);
                 }
             });
             listeningThread.Start();

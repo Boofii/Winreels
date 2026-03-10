@@ -104,8 +104,8 @@ public class CryptoFragment
         aes.GenerateIV();
         this.commKey = aes;
 
-        byte[] encryptedKey = rsa.Encrypt(aes.Key, RSAEncryptionPadding.OaepSHA3_256);
-        byte[] encryptedIV  = rsa.Encrypt(aes.IV, RSAEncryptionPadding.OaepSHA3_256);
+        byte[] encryptedKey = rsa.Encrypt(aes.Key, RSAEncryptionPadding.OaepSHA256);
+        byte[] encryptedIV  = rsa.Encrypt(aes.IV, RSAEncryptionPadding.OaepSHA256);
         client.Execute("aes_key", [Convert.ToBase64String(encryptedKey), Convert.ToBase64String(encryptedIV)]);
     }
 
@@ -120,8 +120,8 @@ public class CryptoFragment
         if (!cmd.Equals("aes_key"))
             return;
 
-        byte[] key = privateKey.Decrypt(Convert.FromBase64String(args[0]), RSAEncryptionPadding.OaepSHA3_256);
-        byte[] iv = privateKey.Decrypt(Convert.FromBase64String(args[1]), RSAEncryptionPadding.OaepSHA3_256);
+        byte[] key = privateKey.Decrypt(Convert.FromBase64String(args[0]), RSAEncryptionPadding.OaepSHA256);
+        byte[] iv = privateKey.Decrypt(Convert.FromBase64String(args[1]), RSAEncryptionPadding.OaepSHA256);
         Aes aes = Aes.Create();
         aes.KeySize = 256;
         aes.Key = key;
